@@ -44,7 +44,8 @@ jobs:
           
           # Option 1 (Preferred): Convert to YAML for Cloud Run Runtime Env Vars
           # This keeps secrets out of the image build
-          sed 's/=/:\ /' .env > env.yaml
+          # We use regex to quote the values to prevent boolean parsing errors (e.g. true -> "true")
+          sed 's/=\(.*\)/: "\1"/' .env > env.yaml
           
           # Option 2 (Fallback if user strictly wants app.properties):
           # Uncomment the next line to bake properties into the image
