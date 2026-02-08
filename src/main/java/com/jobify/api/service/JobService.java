@@ -95,7 +95,7 @@ public class JobService {
         // not guaranteed
         Map<Long, JobDTO> dtoMap = finalJobDTOs.stream()
                 .collect(Collectors.toMap(JobDTO::getId, dto -> dto, (a, b) -> a));
-        List<JobDTO> orderedDTOs = new ArrayList<>();
+        List<JobSummaryDTO> orderedDTOs = new ArrayList<>();
         if (jobIds != null) {
             for (Long id : jobIds) {
                 if (dtoMap.containsKey(id)) {
@@ -200,8 +200,8 @@ public class JobService {
         return dto;
     }
 
-    private JobDTO convertToSummaryDTO(JobDTO fullDto) {
-        JobDTO summary = new JobDTO();
+    private JobSummaryDTO convertToSummaryDTO(JobDTO fullDto) {
+        JobSummaryDTO summary = new JobSummaryDTO();
         summary.setId(fullDto.getId());
         summary.setTitle(fullDto.getTitle());
         summary.setJobUrl(fullDto.getJobUrl());

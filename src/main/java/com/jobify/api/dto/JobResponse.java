@@ -5,6 +5,6 @@ import java.util.List;
 
 @Data
 public class JobResponse {
-    private List<JobDTO> data;
+    private List<JobSummaryDTO> data;
     private PaginationDTO pagination;
 }
