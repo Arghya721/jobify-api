@@ -6,6 +6,7 @@ import com.jobify.api.dto.RegionDTO;
 import com.jobify.api.service.GeoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,13 +20,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/geo")
 @Tag(name = "Geo Reference", description = "APIs for Location Reference Data")
+@RequiredArgsConstructor
 public class GeoController {
 
     private final GeoService geoService;
-
-    public GeoController(GeoService geoService) {
-        this.geoService = geoService;
-    }
 
     @Operation(summary = "Get All Countries", description = "Returns a list of all countries sorted by name.")
     @GetMapping("/countries")

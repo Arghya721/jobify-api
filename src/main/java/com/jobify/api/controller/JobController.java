@@ -5,6 +5,7 @@ import com.jobify.api.dto.JobSearchCriteria;
 import com.jobify.api.service.JobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,13 +20,10 @@ import java.time.OffsetDateTime;
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Jobs", description = "Job management APIs")
+@RequiredArgsConstructor
 public class JobController {
 
     private final JobService jobService;
-
-    public JobController(JobService jobService) {
-        this.jobService = jobService;
-    }
 
     @Operation(summary = "Get jobs", description = "Retrieve a list of jobs with filtering and pagination")
     @GetMapping("/jobs")
