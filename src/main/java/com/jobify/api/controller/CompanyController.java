@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CompanyController {
 
-    private CompanyService service;
+    private final CompanyService service;
 
     @Operation(summary = "Get All Companies", description = "Returns a list of all companies sorted by ID.")
     @GetMapping("/companies")
