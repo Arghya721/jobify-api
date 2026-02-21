@@ -5,6 +5,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      build_image:
+        description: 'Build and Push Docker Image'
+        required: true
+        default: true
+        type: boolean
+      deploy_image:
+        description: 'Deploy to Cloud Run'
+        required: true
+        default: true
+        type: boolean
 
 env:
   PROJECT_ID: job-notifier-478915
@@ -24,6 +35,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'src/**'
+              - 'pom.xml'
+              - 'Dockerfile'
+              - '.github/workflows/docker.yml'
+
       - name: Google Auth
         id: auth
         uses: google-github-actions/auth@v2
@@ -34,10 +56,20 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker
+        if: (github.event_name == 'push' && steps.filter.outputs.backend == 'true') || (github.event_name == 'workflow_dispatch' && inputs.build_image == true)
         run: |
           gcloud auth configure-docker ${{ env.REGISTRY_HOSTNAME }}
 
+      - name: Build and Push Docker Image
+        if: (github.event_name == 'push' && steps.filter.outputs.backend == 'true') || (github.event_name == 'workflow_dispatch' && inputs.build_image == true)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY_HOSTNAME }}/${{ env.PROJECT_ID }}/jobify-api/${{ env.IMAGE_NAME }}:latest
+
       - name: Prepare Secrets
+        if: (github.event_name == 'push' && steps.filter.outputs.backend == 'true') || (github.event_name == 'workflow_dispatch' && inputs.deploy_image == true)
         run: |
           # Inject secrets into .env file
           echo "${{ secrets.JOBIFY_API_ENV }}" > .env
@@ -46,23 +78,14 @@ jobs:
           # This keeps secrets out of the image build
           # We use regex to quote the values to prevent boolean parsing errors (e.g. true -> "true")
           sed 's/=\(.*\)/: "\1"/' .env > env.yaml
-          
-          # Option 2 (Fallback if user strictly wants app.properties):
-          # Uncomment the next line to bake properties into the image
-          # cp .env src/main/resources/application.properties
-
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ env.REGISTRY_HOSTNAME }}/${{ env.PROJECT_ID }}/jobify-api/${{ env.IMAGE_NAME }}:latest
 
       - name: Deploy to Cloud Run
+        if: (github.event_name == 'push' && steps.filter.outputs.backend == 'true') || (github.event_name == 'workflow_dispatch' && inputs.deploy_image == true)
         run: |
           gcloud beta run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGISTRY_HOSTNAME }}/${{ env.PROJECT_ID }}/jobify-api/${{ env.IMAGE_NAME }}:latest \
             --region ${{ env.REGION }} \
             --ports="http1=8080,h2c=9090" \
             --allow-unauthenticated \
-            --env-vars-file=env.yaml
+            --env-vars-file=env.yaml \
+            --quiet
