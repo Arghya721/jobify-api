@@ -83,10 +83,42 @@ jobs:
       - name: Deploy to Cloud Run
         if: (github.event_name == 'push' && steps.filter.outputs.backend == 'true') || (github.event_name == 'workflow_dispatch' && inputs.deploy_image == true)
         run: |
-          gcloud beta run deploy ${{ env.SERVICE_NAME }} \
-            --image ${{ env.REGISTRY_HOSTNAME }}/${{ env.PROJECT_ID }}/jobify-api/${{ env.IMAGE_NAME }}:latest \
+          # Create the native Knative service deployment YAML required for Multi-Port
+          cat <<EOF > service.yaml
+          apiVersion: serving.knative.dev/v1
+          kind: Service
+          metadata:
+            name: ${{ env.SERVICE_NAME }}
+            annotations:
+              run.googleapis.com/ingress: all
+          spec:
+            template:
+              spec:
+                containers:
+                - image: ${{ env.REGISTRY_HOSTNAME }}/${{ env.PROJECT_ID }}/jobify-api/${{ env.IMAGE_NAME }}:latest
+                  ports:
+                  - name: http1
+                    containerPort: 8080
+                  - name: h2c
+                    containerPort: 9090
+                  env:
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: "cloud"
+          EOF
+          
+          # Append the secrets from the .env file to the YAML's env block
+          while IFS='=' read -r key value; do
+            if [[ -n "\$key" && ! "\$key" =~ ^#.* ]]; then
+              echo "                  - name: \$key" >> service.yaml
+              echo "                    value: \"\$value\"" >> service.yaml
+            fi
+          done < .env
+          
+          # Deploy the multi-port service using the YAML definition
+          gcloud run services replace service.yaml --region ${{ env.REGION }}
+          
+          # Ensure unauthenticated access is allowed (matching your previous flag)
+          gcloud run services add-iam-policy-binding ${{ env.SERVICE_NAME }} \
             --region ${{ env.REGION }} \
-            --ports="http1=8080,h2c=9090" \
-            --allow-unauthenticated \
-            --env-vars-file=env.yaml \
-            --quiet
+            --member="allUsers" \
+            --role="roles/run.invoker"
