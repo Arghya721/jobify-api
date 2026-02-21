@@ -90,10 +90,10 @@ jobs:
             --allow-unauthenticated \
             --env-vars-file=env.yaml
 
-      - name: Deploy gRPC Server (jobify-api-gRPC)
+      - name: Deploy gRPC Server (jobify-api-grpc)
         if: (github.event_name == 'push' && steps.filter.outputs.backend == 'true') || (github.event_name == 'workflow_dispatch' && inputs.deploy_image == true)
         run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }}-gRPC \
+          gcloud run deploy ${{ env.SERVICE_NAME }}-grpc \
             --image ${{ env.REGISTRY_HOSTNAME }}/${{ env.PROJECT_ID }}/jobify-api/${{ env.IMAGE_NAME }}:latest \
             --region ${{ env.REGION }} \
             --port 9090 \
