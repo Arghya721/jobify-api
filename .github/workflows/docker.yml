@@ -63,5 +63,6 @@ jobs:
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGISTRY_HOSTNAME }}/${{ env.PROJECT_ID }}/jobify-api/${{ env.IMAGE_NAME }}:latest \
             --region ${{ env.REGION }} \
+            --ports="http1=8080,h2c=9090" \
             --allow-unauthenticated \
             --env-vars-file=env.yaml

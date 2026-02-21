@@ -16,7 +16,7 @@ public class CompanyService {
         this.repository = repository;
     }
 
-    @Cacheable(value = "companies", key = "'all'")
+    @Cacheable(value = "companies", key = "'all_v2'")
     public List<Company> getAllCompanies() {
         return repository.findAll(Sort.by(Sort.Direction.ASC, "id"));
     }

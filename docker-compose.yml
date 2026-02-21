@@ -5,6 +5,7 @@ services:
     build: .
     ports:
       - "8080:8080"
+      - "9090:9090"
     environment:
       - SPRING_DATASOURCE_URL=${DB_URL}
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
