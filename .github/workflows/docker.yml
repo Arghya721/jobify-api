@@ -44,7 +44,6 @@ jobs:
               - 'src/**'
               - 'pom.xml'
               - 'Dockerfile'
-              - '.github/workflows/docker.yml'
 
       - name: Google Auth
         id: auth
@@ -54,6 +53,8 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: 'beta'
 
       - name: Configure Docker
         if: (github.event_name == 'push' && steps.filter.outputs.backend == 'true') || (github.event_name == 'workflow_dispatch' && inputs.build_image == true)
