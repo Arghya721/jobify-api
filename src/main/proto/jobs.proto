@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.jobify.api.grpc";
+option java_outer_classname = "JobsProto";
+
+import "company.proto";
+import "cities.proto";
+import "countries.proto";
+import "regions.proto";
+
+service JobService {
+  rpc GetJobs (GetJobsRequest) returns (GetJobsResponse);
+  rpc GetJobById (GetJobByIdRequest) returns (JobMessage);
+}
+
+message GetJobsRequest {
+  optional string q = 1;
+  optional int64 company_id = 2;
+  optional string source = 3;
+  optional string country = 4;
+  optional string city = 5;
+  optional string region = 6;
+  optional bool remote = 7;
+  optional bool is_active = 8;
+  optional string since = 9;
+  repeated string description_tags = 10;
+  optional int32 page = 11;
+  optional int32 limit = 12;
+  optional string sort = 13;
+}
+
+message PaginationMessage {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message JobSummaryMessage {
+  int64 id = 1;
+  string title = 2;
+  CompanyMessage company = 3;
+  string job_url = 4;
+  string location_name = 5;
+  bool is_active = 6;
+}
+
+message GetJobsResponse {
+  repeated JobSummaryMessage data = 1;
+  PaginationMessage pagination = 2;
+}
+
+message GetJobByIdRequest {
+  int64 id = 1;
+}
+
+message JobDetailMessage {
+  string raw_description = 1;
+  optional int32 experience_min = 2;
+  optional int32 experience_max = 3;
+  string experience_raw = 4;
+  string job_posted_at = 5;
+}
+
+message LocationMessage {
+  CityMessage city = 1;
+  RegionMessage region = 2;
+  CountryMessage country = 3;
+  bool is_remote = 4;
+}
+
+message JobMessage {
+  int64 id = 1;
+  string title = 2;
+  CompanyMessage company = 3;
+  string job_url = 4;
+  string location_name = 5;
+  JobDetailMessage details = 6;
+  repeated LocationMessage locations = 7;
+  bool is_active = 8;
+}

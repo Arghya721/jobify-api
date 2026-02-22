@@ -41,10 +41,9 @@ public class JobService {
         List<Long> jobIds;
 
         if (cachedResult == null) {
-            // Cache Miss: Run DB Search using SLICE (No Count Query)
-            // We use the Slice returning method logic (queryBy)
-            org.springframework.data.domain.Slice<Job> jobSlice = jobRepository
-                    .queryBy(JobSpecification.createSpecification(criteria), pageable);
+            // Cache Miss: Run DB Search using built-in findAll
+            org.springframework.data.domain.Page<Job> jobSlice = jobRepository
+                    .findAll(JobSpecification.createSpecification(criteria), pageable);
 
             jobIds = jobSlice.getContent().stream().map(Job::getId).collect(Collectors.toList());
 

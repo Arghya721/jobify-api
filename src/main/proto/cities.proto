@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.jobify.api.grpc";
+option java_outer_classname = "CitiesProto";
+
+import "google/protobuf/empty.proto";
+
+service CityService {
+  rpc GetCities (CityRequest) returns (GetCityResponse);
+}
+
+message CityRequest {
+  int64 id = 1;
+}
+
+message CityMessage {
+  int64 id = 1;
+  double latitude = 2;
+  double longitude = 3;
+  string name = 4;
+  int64 population = 5;
+}
+
+
+message GetCityResponse {
+  repeated CityMessage data = 1;
+}

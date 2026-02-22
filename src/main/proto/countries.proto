@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.jobify.api.grpc";
+option java_outer_classname = "CountriesProto";
+
+import "google/protobuf/empty.proto";
+
+service CountryService {
+  rpc GetCountries (google.protobuf.Empty) returns (GetCountriesResponse);
+}
+
+message CountryMessage {
+  int64 id = 1;
+  string iso2 = 2;
+  string iso3 = 3;
+  string name = 4;
+}
+
+
+message GetCountriesResponse {
+  repeated CountryMessage data = 1;
+}

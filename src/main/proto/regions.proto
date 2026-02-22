@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.jobify.api.grpc";
+option java_outer_classname = "RegionsProto";
+
+import "google/protobuf/empty.proto";
+
+service RegionService {
+  rpc GetRegions (RegionRequest) returns (GetRegionsResponse);
+}
+
+message RegionRequest {
+  string iso2Code = 1;
+}
+
+message RegionMessage {
+  int64 id = 1;
+  string code = 2;
+  string name = 3;
+}
+
+
+message GetRegionsResponse {
+  repeated RegionMessage data = 1;
+}

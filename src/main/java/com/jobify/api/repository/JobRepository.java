@@ -16,9 +16,7 @@ import java.util.Optional;
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificationExecutor<Job> {
 
-        // Slice avoids the count query!
-        // Renamed to queryBy to avoid conflict with JpaSpecificationExecutor.findAll
-        Slice<Job> queryBy(Specification<Job> spec, Pageable pageable);
+        // We rely on JpaSpecificationExecutor's built-in findAll method
 
         @Query("SELECT j FROM Job j " +
                         "LEFT JOIN FETCH j.company " +

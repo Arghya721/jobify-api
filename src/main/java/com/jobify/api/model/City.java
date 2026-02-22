@@ -11,7 +11,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -32,9 +31,9 @@ public class City implements Serializable {
     @Column(name = "country_id")
     private Long countryId;
 
-    private BigDecimal lat;
+    private Double lat;
 
-    private BigDecimal lon;
+    private Double lon;
 
     private Long population;
 
