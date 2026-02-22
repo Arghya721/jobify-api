@@ -96,6 +96,8 @@ public class JobGrpcController extends JobServiceGrpc.JobServiceImplBase {
                         summaryBuilder.setLocationName(summary.getLocationName());
                     if (summary.getIsActive() != null)
                         summaryBuilder.setIsActive(summary.getIsActive());
+                    if (summary.getCreatedAt() != null)
+                        summaryBuilder.setCreatedAt(summary.getCreatedAt());
 
                     responseBuilder.addData(summaryBuilder.build());
                 }

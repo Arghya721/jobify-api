@@ -19,4 +19,7 @@ public class JobSummaryDTO {
 
     @JsonProperty("is_active")
     private Boolean isActive;
+
+    @JsonProperty("created_at")
+    private String createdAt;
 }

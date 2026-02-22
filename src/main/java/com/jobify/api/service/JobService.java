@@ -216,7 +216,10 @@ public class JobService {
             summary.setCompany(c);
         }
 
-        // Skip details and locations
+        // Map the posted date from job details
+        if (fullDto.getDetails() != null && fullDto.getDetails().getJobPostedAt() != null) {
+            summary.setCreatedAt(fullDto.getDetails().getJobPostedAt().toString());
+        }
         return summary;
     }
 

@@ -42,6 +42,7 @@ message JobSummaryMessage {
   string job_url = 4;
   string location_name = 5;
   bool is_active = 6;
+  string created_at = 7;
 }
 
 message GetJobsResponse {
