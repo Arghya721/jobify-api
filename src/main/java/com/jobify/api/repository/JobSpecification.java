@@ -72,7 +72,8 @@ public class JobSpecification {
             }
 
             if (criteria.getSince() != null) {
-                predicates.add(cb.greaterThan(root.get("createdAt"), criteria.getSince()));
+                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> createdAtExpr = root.get("createdAt");
+                predicates.add(cb.greaterThan(createdAtExpr, criteria.getSince()));
             }
 
             if (criteria.getDescriptionTags() != null && !criteria.getDescriptionTags().isEmpty()) {
@@ -113,6 +114,8 @@ public class JobSpecification {
                                 cb.like(cb.lower(jobDetailJoin.get("rawDescription")), "%" + tag.toLowerCase() + "%"));
                     }
                 }
+
+                // OR all the tags to match any! Fix: actually adding it to main predicates list
                 if (!tagPredicates.isEmpty()) {
                     predicates.add(cb.or(tagPredicates.toArray(new Predicate[0])));
                 }
