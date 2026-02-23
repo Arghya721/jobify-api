@@ -20,4 +20,5 @@ public class JobSearchCriteria {
     private Boolean isActive = true;
     private OffsetDateTime since;
     private java.util.List<String> descriptionTags;
+    private org.springframework.data.domain.Sort.Direction sortDirection;
 }

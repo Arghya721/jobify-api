@@ -22,4 +22,10 @@ public class JobSummaryDTO {
 
     @JsonProperty("created_at")
     private String createdAt;
+
+    @JsonProperty("experience_raw")
+    private String experienceRaw;
+
+    @JsonProperty("is_remote")
+    private Boolean isRemote;
 }

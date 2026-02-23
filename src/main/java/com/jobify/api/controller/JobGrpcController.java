@@ -58,7 +58,11 @@ public class JobGrpcController extends JobServiceGrpc.JobServiceImplBase {
                 limit = 100;
 
             Sort.Direction direction = sort.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-            Pageable pageable = PageRequest.of(page - 1, limit, Sort.by(direction, "jobDetail.jobPostedAt"));
+            criteria.setSortDirection(direction);
+
+            // Use Sort.unsorted() because sorting is manually handled in JobSpecification
+            // via CriteriaBuilder COALESCE
+            Pageable pageable = PageRequest.of(page - 1, limit, Sort.unsorted());
 
             JobResponse jobResponse = jobService.getJobs(criteria, pageable);
 
@@ -98,6 +102,10 @@ public class JobGrpcController extends JobServiceGrpc.JobServiceImplBase {
                         summaryBuilder.setIsActive(summary.getIsActive());
                     if (summary.getCreatedAt() != null)
                         summaryBuilder.setCreatedAt(summary.getCreatedAt());
+                    if (summary.getExperienceRaw() != null)
+                        summaryBuilder.setExperienceRaw(summary.getExperienceRaw());
+                    if (summary.getIsRemote() != null)
+                        summaryBuilder.setIsRemote(summary.getIsRemote());
 
                     responseBuilder.addData(summaryBuilder.build());
                 }

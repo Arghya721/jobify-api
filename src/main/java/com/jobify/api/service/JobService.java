@@ -131,6 +131,7 @@ public class JobService {
         dto.setJobUrl(job.getJobUrl());
         dto.setLocationName(job.getLocationName());
         dto.setIsActive(job.getIsActive());
+        dto.setCreatedAt(job.getCreatedAt());
 
         if (job.getCompany() != null) {
             CompanyDTO companyDTO = new CompanyDTO();
@@ -216,10 +217,33 @@ public class JobService {
             summary.setCompany(c);
         }
 
-        // Map the posted date from job details
-        if (fullDto.getDetails() != null && fullDto.getDetails().getJobPostedAt() != null) {
-            summary.setCreatedAt(fullDto.getDetails().getJobPostedAt().toString());
+        // Map the posted date and experience from job details
+        // Fallback to createdAt if jobPostedAt is null
+        boolean dateSet = false;
+        if (fullDto.getDetails() != null) {
+            if (fullDto.getDetails().getJobPostedAt() != null) {
+                summary.setCreatedAt(fullDto.getDetails().getJobPostedAt().toString());
+                dateSet = true;
+            }
+            if (fullDto.getDetails().getExperienceRaw() != null) {
+                summary.setExperienceRaw(fullDto.getDetails().getExperienceRaw());
+            }
         }
+
+        // If details was null or jobPostedAt was null, fallback to Job createdAt
+        if (!dateSet && fullDto.getCreatedAt() != null) {
+            summary.setCreatedAt(fullDto.getCreatedAt().toString());
+        }
+
+        // Derive is_remote from locations
+        if (fullDto.getLocations() != null) {
+            boolean isRemote = fullDto.getLocations().stream()
+                    .anyMatch(loc -> Boolean.TRUE.equals(loc.getIsRemote()));
+            summary.setIsRemote(isRemote);
+        } else {
+            summary.setIsRemote(false);
+        }
+
         return summary;
     }
 

@@ -121,6 +121,37 @@ public class JobSpecification {
                 }
             }
 
+            // Custom Sorting: COALESCE(jobDetail.jobPostedAt, root.createdAt)
+            if (criteria.getSortDirection() != null && query.getResultType() != Long.class
+                    && query.getResultType() != long.class) {
+                Join<Job, JobDetail> sortJobDetailJoin = null;
+
+                for (Join<Job, ?> join : root.getJoins()) {
+                    if (join.getAttribute().getName().equals("jobDetail")) {
+                        @SuppressWarnings("unchecked")
+                        Join<Job, JobDetail> castedJoin = (Join<Job, JobDetail>) join;
+                        sortJobDetailJoin = castedJoin;
+                        break;
+                    }
+                }
+
+                if (sortJobDetailJoin == null) {
+                    sortJobDetailJoin = root.join("jobDetail", JoinType.LEFT);
+                }
+
+                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> postedAt = sortJobDetailJoin
+                        .get("jobPostedAt");
+                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> createdAt = root.get("createdAt");
+                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> effectiveDate = cb.coalesce(postedAt,
+                        createdAt);
+
+                if (criteria.getSortDirection().isAscending()) {
+                    query.orderBy(cb.asc(effectiveDate));
+                } else {
+                    query.orderBy(cb.desc(effectiveDate));
+                }
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
