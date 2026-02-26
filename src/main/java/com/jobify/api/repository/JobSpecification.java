@@ -121,9 +121,10 @@ public class JobSpecification {
                     }
                 }
 
-                // OR all the tags to match any! Fix: actually adding it to main predicates list
+                // AND all the tags to match ALL! Match all narrow down the results, forcing
+                // PostgreSQL to use the index!
                 if (!tagPredicates.isEmpty()) {
-                    predicates.add(cb.or(tagPredicates.toArray(new Predicate[0])));
+                    predicates.add(cb.and(tagPredicates.toArray(new Predicate[0])));
                 }
             }
 
@@ -151,10 +152,18 @@ public class JobSpecification {
                 jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> effectiveDate = cb.coalesce(postedAt,
                         createdAt);
 
+                // PERFORMANCE FIX: PostgreSQL planner trap "Limit + Order By + ILIKE"
+                // This forces PG to evaluate the intensive Text Index Filter FIRST instead of a
+                // full backward sequential scan
+                // by making the sort key opaque to the planner.
+                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> opaqueSortKey = cb.function(
+                        "COALESCE", java.time.OffsetDateTime.class, effectiveDate,
+                        cb.nullLiteral(java.time.OffsetDateTime.class));
+
                 if (criteria.getSortDirection().isAscending()) {
-                    query.orderBy(cb.asc(effectiveDate));
+                    query.orderBy(cb.asc(opaqueSortKey));
                 } else {
-                    query.orderBy(cb.desc(effectiveDate));
+                    query.orderBy(cb.desc(opaqueSortKey));
                 }
             }
 
