@@ -45,6 +45,7 @@ message JobSummaryMessage {
   string created_at = 7;
   optional string experience_raw = 8;
   bool is_remote = 9;
+  repeated string matched_tags = 10;
 }
 
 message GetJobsResponse {

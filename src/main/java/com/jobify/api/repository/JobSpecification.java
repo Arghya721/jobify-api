@@ -110,8 +110,14 @@ public class JobSpecification {
 
                 for (String tag : criteria.getDescriptionTags()) {
                     if (StringUtils.hasText(tag)) {
-                        tagPredicates.add(
-                                cb.like(cb.lower(jobDetailJoin.get("rawDescription")), "%" + tag.toLowerCase() + "%"));
+                        if (cb instanceof org.hibernate.query.criteria.HibernateCriteriaBuilder) {
+                            org.hibernate.query.criteria.HibernateCriteriaBuilder hcb = (org.hibernate.query.criteria.HibernateCriteriaBuilder) cb;
+                            tagPredicates.add(hcb.ilike(jobDetailJoin.get("rawDescription"), "%" + tag + "%"));
+                        } else {
+                            tagPredicates.add(
+                                    cb.like(cb.lower(jobDetailJoin.get("rawDescription")),
+                                            "%" + tag.toLowerCase() + "%"));
+                        }
                     }
                 }
 

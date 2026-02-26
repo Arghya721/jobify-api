@@ -28,4 +28,7 @@ public class JobSummaryDTO {
 
     @JsonProperty("is_remote")
     private Boolean isRemote;
+
+    @JsonProperty("matched_tags")
+    private java.util.List<String> matchedTags;
 }

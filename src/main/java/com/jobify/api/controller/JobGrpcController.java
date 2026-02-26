@@ -107,6 +107,10 @@ public class JobGrpcController extends JobServiceGrpc.JobServiceImplBase {
                     if (summary.getIsRemote() != null)
                         summaryBuilder.setIsRemote(summary.getIsRemote());
 
+                    if (summary.getMatchedTags() != null && !summary.getMatchedTags().isEmpty()) {
+                        summaryBuilder.addAllMatchedTags(summary.getMatchedTags());
+                    }
+
                     responseBuilder.addData(summaryBuilder.build());
                 }
             }

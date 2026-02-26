@@ -96,11 +96,12 @@ public class JobService {
                 .collect(Collectors.toMap(JobDTO::getId, dto -> dto, (a, b) -> a));
         List<JobSummaryDTO> orderedDTOs = new ArrayList<>();
         if (jobIds != null) {
+            List<String> searchedTags = criteria.getDescriptionTags();
             for (Long id : jobIds) {
                 if (dtoMap.containsKey(id)) {
                     // Convert to Summary DTO (exclude details) for List View
                     JobDTO fullDto = dtoMap.get(id);
-                    orderedDTOs.add(convertToSummaryDTO(fullDto));
+                    orderedDTOs.add(convertToSummaryDTO(fullDto, searchedTags));
                 }
             }
         }
@@ -200,7 +201,7 @@ public class JobService {
         return dto;
     }
 
-    private JobSummaryDTO convertToSummaryDTO(JobDTO fullDto) {
+    private JobSummaryDTO convertToSummaryDTO(JobDTO fullDto, List<String> searchedTags) {
         JobSummaryDTO summary = new JobSummaryDTO();
         summary.setId(fullDto.getId());
         summary.setTitle(fullDto.getTitle());
@@ -242,6 +243,25 @@ public class JobService {
             summary.setIsRemote(isRemote);
         } else {
             summary.setIsRemote(false);
+        }
+
+        // Calculate matched tags
+        if (searchedTags != null && !searchedTags.isEmpty()) {
+            List<String> matchedTags = new ArrayList<>();
+            String rawDescription = null;
+            if (fullDto.getDetails() != null && fullDto.getDetails().getRawDescription() != null) {
+                rawDescription = fullDto.getDetails().getRawDescription().toLowerCase();
+            }
+            if (rawDescription != null) {
+                for (String tag : searchedTags) {
+                    if (rawDescription.contains(tag.toLowerCase())) {
+                        matchedTags.add(tag);
+                    }
+                }
+            }
+            if (!matchedTags.isEmpty()) {
+                summary.setMatchedTags(matchedTags);
+            }
         }
 
         return summary;
