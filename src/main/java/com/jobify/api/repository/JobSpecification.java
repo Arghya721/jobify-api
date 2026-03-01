@@ -149,8 +149,11 @@ public class JobSpecification {
                 jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> postedAt = sortJobDetailJoin
                         .get("jobPostedAt");
                 jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> createdAt = root.get("createdAt");
-                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> effectiveDate = cb.coalesce(postedAt,
-                        createdAt);
+                java.time.OffsetDateTime minDate = java.time.OffsetDateTime.parse("1970-01-01T00:00:00Z");
+                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> effectiveDate = cb.<java.time.OffsetDateTime>selectCase()
+                        .when(cb.isNull(postedAt), createdAt)
+                        .when(cb.lessThan(postedAt, minDate), createdAt)
+                        .otherwise(postedAt);
 
                 // PERFORMANCE FIX: PostgreSQL planner trap "Limit + Order By + ILIKE"
                 // This forces PG to evaluate the intensive Text Index Filter FIRST instead of a
