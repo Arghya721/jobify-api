@@ -222,7 +222,8 @@ public class JobService {
         // Fallback to createdAt if jobPostedAt is null
         boolean dateSet = false;
         if (fullDto.getDetails() != null) {
-            if (fullDto.getDetails().getJobPostedAt() != null) {
+            if (fullDto.getDetails().getJobPostedAt() != null
+                    && fullDto.getDetails().getJobPostedAt().getYear() > 1970) {
                 summary.setCreatedAt(fullDto.getDetails().getJobPostedAt().toString());
                 dateSet = true;
             }
@@ -231,8 +232,8 @@ public class JobService {
             }
         }
 
-        // If details was null or jobPostedAt was null, fallback to Job createdAt
-        if (!dateSet && fullDto.getCreatedAt() != null) {
+        // If details was null or jobPostedAt was invalid, fallback to Job createdAt
+        if (!dateSet && fullDto.getCreatedAt() != null && fullDto.getCreatedAt().getYear() > 1970) {
             summary.setCreatedAt(fullDto.getCreatedAt().toString());
         }
 
