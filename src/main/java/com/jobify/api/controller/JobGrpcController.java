@@ -4,7 +4,7 @@ import com.jobify.api.dto.*;
 import com.jobify.api.grpc.*;
 import com.jobify.api.service.JobService;
 import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.grpc.server.service.GrpcService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;

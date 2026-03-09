@@ -6,7 +6,7 @@ import com.jobify.api.dto.RegionDTO;
 import com.jobify.api.grpc.*;
 import com.jobify.api.service.GeoService;
 import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.grpc.server.service.GrpcService;
 import com.jobify.api.dto.CityDTO;
 import com.jobify.api.dto.CountryDTO;
 

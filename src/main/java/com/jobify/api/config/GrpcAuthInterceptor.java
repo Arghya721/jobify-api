@@ -2,9 +2,9 @@ package com.jobify.api.config;
 
 import io.grpc.*;
 import org.springframework.beans.factory.annotation.Value;
-import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
+import org.springframework.stereotype.Component;
 
-@GrpcGlobalServerInterceptor
+@Component
 public class GrpcAuthInterceptor implements ServerInterceptor {
 
     @Value("${grpc.api-key}")

@@ -7,7 +7,7 @@ import com.jobify.api.grpc.GetAllCompaniesResponse;
 import com.jobify.api.model.Company;
 import com.jobify.api.service.CompanyService;
 import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.grpc.server.service.GrpcService;
 
 @GrpcService
 public class CompanyGrpcService extends CompanyServiceGrpc.CompanyServiceImplBase {
