@@ -28,6 +28,8 @@ message GetJobsRequest {
   optional int32 page = 11;
   optional int32 limit = 12;
   optional string sort = 13;
+  optional int32 experience_min = 14;
+  optional int32 experience_max = 15;
 }
 
 message PaginationMessage {

@@ -38,6 +38,8 @@ public class JobController {
             @RequestParam(name = "is_active", required = false, defaultValue = "true") Boolean isActive,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime since,
             @RequestParam(name = "description_tags", required = false) java.util.List<String> descriptionTags,
+            @RequestParam(name = "experience_min", required = false) Integer experienceMin,
+            @RequestParam(name = "experience_max", required = false) Integer experienceMax,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "desc") String sort) { // 'sort' only controls direction now
@@ -53,6 +55,8 @@ public class JobController {
         criteria.setIsActive(isActive);
         criteria.setSince(since);
         criteria.setDescriptionTags(descriptionTags);
+        criteria.setExperienceMin(experienceMin);
+        criteria.setExperienceMax(experienceMax);
 
         // Limit max 100
         if (limit > 100) {

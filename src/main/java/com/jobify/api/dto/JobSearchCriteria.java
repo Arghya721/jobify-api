@@ -21,4 +21,6 @@ public class JobSearchCriteria {
     private OffsetDateTime since;
     private java.util.List<String> descriptionTags;
     private org.springframework.data.domain.Sort.Direction sortDirection;
+    private Integer experienceMin;
+    private Integer experienceMax;
 }

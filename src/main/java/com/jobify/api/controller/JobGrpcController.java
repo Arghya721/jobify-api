@@ -49,6 +49,10 @@ public class JobGrpcController extends JobServiceGrpc.JobServiceImplBase {
             if (request.getDescriptionTagsCount() > 0) {
                 criteria.setDescriptionTags(request.getDescriptionTagsList());
             }
+            if (request.hasExperienceMin())
+                criteria.setExperienceMin(request.getExperienceMin());
+            if (request.hasExperienceMax())
+                criteria.setExperienceMax(request.getExperienceMax());
 
             int page = request.hasPage() ? request.getPage() : 1;
             int limit = request.hasLimit() ? request.getLimit() : 10;

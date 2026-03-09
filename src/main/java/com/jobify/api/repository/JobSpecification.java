@@ -128,6 +128,39 @@ public class JobSpecification {
                 }
             }
 
+            // Experience range overlap filter
+            if (criteria.getExperienceMin() != null || criteria.getExperienceMax() != null) {
+                Join<Job, JobDetail> expJobDetailJoin = null;
+
+                // Reuse existing jobDetail join if available
+                for (Join<Job, ?> join : root.getJoins()) {
+                    if (join.getAttribute().getName().equals("jobDetail")) {
+                        @SuppressWarnings("unchecked")
+                        Join<Job, JobDetail> castedJoin = (Join<Job, JobDetail>) join;
+                        expJobDetailJoin = castedJoin;
+                        break;
+                    }
+                }
+
+                if (expJobDetailJoin == null) {
+                    expJobDetailJoin = root.join("jobDetail", JoinType.LEFT);
+                }
+
+                if (criteria.getExperienceMin() != null) {
+                    // Job's max experience must be >= user's min (or null = no cap)
+                    predicates.add(cb.or(
+                            cb.greaterThanOrEqualTo(expJobDetailJoin.get("experienceMax"), criteria.getExperienceMin()),
+                            cb.isNull(expJobDetailJoin.get("experienceMax"))));
+                }
+
+                if (criteria.getExperienceMax() != null) {
+                    // Job's min experience must be <= user's max (or null = no floor)
+                    predicates.add(cb.or(
+                            cb.lessThanOrEqualTo(expJobDetailJoin.get("experienceMin"), criteria.getExperienceMax()),
+                            cb.isNull(expJobDetailJoin.get("experienceMin"))));
+                }
+            }
+
             // Custom Sorting: COALESCE(jobDetail.jobPostedAt, root.createdAt)
             if (criteria.getSortDirection() != null && query.getResultType() != Long.class
                     && query.getResultType() != long.class) {
