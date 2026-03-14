@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.time.Duration;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -21,14 +22,14 @@ public class JwtService {
     private String secretKey;
 
     @Value("${jwt.expiration}")
-    private long expiration;
+    private Duration expiration;
 
     // Generate token after login
     public String generateToken(UserDetails userDetails) {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration.toMillis()))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
