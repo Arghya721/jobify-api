@@ -21,7 +21,19 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
-    private String password;  // BCrypt hashed
+    @Column(nullable = true)
+    private String password;  // BCrypt hashed, nullable for OAuth users
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "picture")
+    private String picture;
+
+    @Column(name = "auth_provider")
+    private String authProvider; // e.g. "LOCAL", "GOOGLE"
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
 
 }

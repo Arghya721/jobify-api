@@ -1,5 +1,6 @@
 package com.jobify.api.controller;
 
+import com.jobify.api.dto.AuthResponse;
 import com.jobify.api.dto.LoginRequest;
 import com.jobify.api.dto.RegisterRequest;
 import com.jobify.api.service.AuthService;
@@ -27,5 +28,17 @@ public class AuthController {
     public ResponseEntity<String> login(
             @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google/login")
+    public ResponseEntity<AuthResponse> googleLogin(
+            @RequestBody com.jobify.api.dto.GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.googleLogin(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(
+            @RequestBody com.jobify.api.dto.RefreshRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request));
     }
 }
