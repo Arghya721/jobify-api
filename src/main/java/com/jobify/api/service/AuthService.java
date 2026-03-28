@@ -74,7 +74,7 @@ public class AuthService {
         return jwtService.generateToken(userDetails);
     }
 
-    public AuthResponse googleLogin(GoogleLoginRequest request) {
+    public AuthResponse googleLogin(GoogleLoginRequest request, String userAgent, String ipAddress, String location) {
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
@@ -122,7 +122,7 @@ public class AuthService {
                         .build();
 
                 String jwt = jwtService.generateToken(userDetails);
-                RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+                RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), userAgent, ipAddress, location);
 
                 return AuthResponse.builder()
                         .accessToken(jwt)
@@ -156,5 +156,17 @@ public class AuthService {
                             .build();
                 })
                 .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+    }
+
+    public java.util.List<RefreshToken> getActiveSessions(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return refreshTokenService.getActiveSessions(user.getId());
+    }
+
+    public void revokeSession(String email, Long tokenId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        refreshTokenService.revokeSession(user.getId(), tokenId);
     }
 }

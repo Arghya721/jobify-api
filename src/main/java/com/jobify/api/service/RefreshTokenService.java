@@ -13,6 +13,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenService {
@@ -24,17 +26,19 @@ public class RefreshTokenService {
     private static final long REFRESH_EXPIRATION_DAYS = 30;
 
     @Transactional
-    public RefreshToken createRefreshToken(Long userId) {
+    public RefreshToken createRefreshToken(Long userId, String deviceInfo, String ipAddress, String location) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
                 
-        // Invalidate older tokens for this user
-        refreshTokenRepository.deleteByUser(user);
-
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .token(UUID.randomUUID().toString())
                 .expiryDate(Instant.now().plus(REFRESH_EXPIRATION_DAYS, ChronoUnit.DAYS))
+                .deviceInfo(deviceInfo)
+                .ipAddress(ipAddress)
+                .location(location)
+                .createdAt(Instant.now())
+                .lastUsedAt(Instant.now())
                 .build();
 
         return refreshTokenRepository.save(refreshToken);
@@ -49,6 +53,31 @@ public class RefreshTokenService {
             refreshTokenRepository.delete(token);
             throw new RuntimeException("Refresh token was expired. Please make a new signin request");
         }
-        return token;
+        
+        // Update last used time
+        token.setLastUsedAt(Instant.now());
+        return refreshTokenRepository.save(token);
+    }
+
+    public List<RefreshToken> getActiveSessions(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        // Fetch tokens and filter out expired ones lazily or strictly
+        return refreshTokenRepository.findByUser(user).stream()
+                .filter(token -> token.getExpiryDate().compareTo(Instant.now()) >= 0)
+                .toList();
+    }
+
+    @Transactional
+    public void revokeSession(Long userId, Long tokenId) {
+        RefreshToken token = refreshTokenRepository.findById(tokenId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+        
+        // Ensure the token belongs to the requesting user before deleting
+        if (!token.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized to revoke this session");
+        }
+        
+        refreshTokenRepository.delete(token);
     }
 }

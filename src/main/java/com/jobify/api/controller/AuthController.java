@@ -32,13 +32,46 @@ public class AuthController {
 
     @PostMapping("/google/login")
     public ResponseEntity<AuthResponse> googleLogin(
-            @RequestBody com.jobify.api.dto.GoogleLoginRequest request) {
-        return ResponseEntity.ok(authService.googleLogin(request));
+            @RequestBody com.jobify.api.dto.GoogleLoginRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        
+        String userAgent = httpRequest.getHeader("User-Agent");
+        // Cloud Run headers or custom fallback wrappers (like cloudflare)
+        String ipAddress = httpRequest.getHeader("X-Forwarded-For"); 
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = httpRequest.getRemoteAddr();
+        }
+        
+        String country = httpRequest.getHeader("X-Appengine-Country");
+        String city = httpRequest.getHeader("X-Appengine-City");
+        String location = null;
+        if (country != null) {
+            location = (city != null ? city + ", " : "") + country;
+        }
+
+        return ResponseEntity.ok(authService.googleLogin(request, userAgent, ipAddress, location));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(
             @RequestBody com.jobify.api.dto.RefreshRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/sessions")
+    public ResponseEntity<java.util.List<com.jobify.api.model.RefreshToken>> getActiveSessions(java.security.Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(authService.getActiveSessions(principal.getName()));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/sessions/{id}")
+    public ResponseEntity<Void> revokeSession(@org.springframework.web.bind.annotation.PathVariable Long id, java.security.Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        authService.revokeSession(principal.getName(), id);
+        return ResponseEntity.ok().build();
     }
 }
