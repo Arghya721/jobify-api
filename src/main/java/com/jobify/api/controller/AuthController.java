@@ -42,11 +42,26 @@ public class AuthController {
             ipAddress = httpRequest.getRemoteAddr();
         }
         
-        String country = httpRequest.getHeader("X-Appengine-Country");
-        String city = httpRequest.getHeader("X-Appengine-City");
+        String country = httpRequest.getHeader("X-Custom-Country");
+        String city = httpRequest.getHeader("X-Custom-City");
+        if (ipAddress != null && ipAddress.contains(",")) {
+            // X-Forwarded-For often contains multiple IPs (e.g. client, proxy1)
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+
         String location = null;
-        if (country != null) {
+        if (country != null && !country.isEmpty()) {
             location = (city != null ? city + ", " : "") + country;
+        } else if (ipAddress != null && !ipAddress.equals("127.0.0.1") && !ipAddress.equals("0:0:0:0:0:0:0:1")) {
+            try {
+                org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+                java.util.Map<String, Object> response = restTemplate.getForObject("http://ip-api.com/json/" + ipAddress, java.util.Map.class);
+                if (response != null && "success".equals(response.get("status"))) {
+                    location = response.get("city") + ", " + response.get("country");
+                }
+            } catch (Exception e) {
+                location = "Unknown Location";
+            }
         }
 
         return ResponseEntity.ok(authService.googleLogin(request, userAgent, ipAddress, location));
