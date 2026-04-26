@@ -114,15 +114,16 @@ public class AuthService {
                     user = userRepository.save(user);
                 }
 
-                // Generate Auth Tokens
+                // Create refresh token first — its ID is embedded in the JWT for revocation tracking
+                RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), userAgent, ipAddress, location);
+
                 UserDetails userDetails = org.springframework.security.core.userdetails.User
                         .builder()
                         .username(user.getEmail())
                         .password(user.getPassword())
                         .build();
 
-                String jwt = jwtService.generateToken(userDetails);
-                RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), userAgent, ipAddress, location);
+                String jwt = jwtService.generateToken(userDetails, refreshToken.getId());
 
                 return AuthResponse.builder()
                         .accessToken(jwt)
@@ -141,17 +142,17 @@ public class AuthService {
     public AuthResponse refreshToken(RefreshRequest request) {
         return refreshTokenService.findByToken(request.getRefreshToken())
                 .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
+                .map(rt -> {
+                    User user = rt.getUser();
                     UserDetails userDetails = org.springframework.security.core.userdetails.User
                             .builder()
                             .username(user.getEmail())
                             .password(user.getPassword())
                             .build();
-                    String jwt = jwtService.generateToken(userDetails);
+                    String jwt = jwtService.generateToken(userDetails, rt.getId());
                     return AuthResponse.builder()
                             .accessToken(jwt)
-                            .refreshToken(request.getRefreshToken()) // Return the same refresh token
+                            .refreshToken(request.getRefreshToken())
                             .user(new AuthResponse.UserDto(user.getEmail(), user.getName(), user.getPicture()))
                             .build();
                 })

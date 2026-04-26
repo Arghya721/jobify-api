@@ -1,6 +1,8 @@
 package com.jobify.api.config.filter;
 
 import com.jobify.api.service.JwtService;
+import com.jobify.api.service.RefreshTokenService;
+import com.jobify.api.service.TokenBlacklistService;
 import com.jobify.api.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,6 +24,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -49,6 +53,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     "Invalid or expired token");
             return;
         }
+
+        // ③b Reject immediately if jti is in the Redis blacklist (session was revoked)
+        String jti = null;
+        try {
+            jti = jwtService.extractJti(token);
+        } catch (Exception ignored) {}
+        if (jti != null && tokenBlacklistService.isBlacklisted(jti)) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Session has been revoked");
+            return;
+        }
+
+        // ③c Also check via refresh token ID (rid) — primary revocation mechanism
+        try {
+            Long rid = jwtService.extractRefreshTokenId(token);
+            if (refreshTokenService.isSessionRevoked(rid)) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Session has been revoked");
+                return;
+            }
+        } catch (Exception ignored) {}
 
         // ④ Validate and set SecurityContext
         if (userEmail != null &&

@@ -1,6 +1,5 @@
 package com.jobify.api.service;
 
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -13,6 +12,8 @@ import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.time.Duration;
 import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -24,9 +25,20 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private Duration expiration;
 
-    // Generate token after login
+    // Generate token after login (no session link)
     public String generateToken(UserDetails userDetails) {
+        return generateToken(userDetails, null);
+    }
+
+    // Generate token linked to a specific refresh token (enables immediate revocation)
+    public String generateToken(UserDetails userDetails, Long refreshTokenId) {
+        Map<String, Object> extra = new java.util.HashMap<>();
+        extra.put("jti", UUID.randomUUID().toString());
+        if (refreshTokenId != null) {
+            extra.put("rid", refreshTokenId);
+        }
         return Jwts.builder()
+                .setClaims(extra)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration.toMillis()))
@@ -44,6 +56,25 @@ public class JwtService {
     // Extract email/username from token
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    // Extract the jti (JWT ID) claim
+    public String extractJti(String token) {
+        return extractClaim(token, claims -> claims.get("jti", String.class));
+    }
+
+    // Extract the refresh token ID embedded in the JWT
+    public Long extractRefreshTokenId(String token) {
+        Object rid = extractClaim(token, claims -> claims.get("rid"));
+        if (rid == null) return null;
+        return rid instanceof Integer ? ((Integer) rid).longValue() : (Long) rid;
+    }
+
+    // Milliseconds remaining until this token expires (0 if already expired)
+    public long getRemainingTtlMs(String token) {
+        Date exp = extractClaim(token, Claims::getExpiration);
+        long remaining = exp.getTime() - System.currentTimeMillis();
+        return Math.max(0, remaining);
     }
 
     // ── private helpers ──────────────────────────────────────────
