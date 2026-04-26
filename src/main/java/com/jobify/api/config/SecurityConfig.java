@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public — no token needed
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Saved filters require authentication
+                        .requestMatchers("/api/v1/filters/**").authenticated()
                         .requestMatchers("/api/v1/**").permitAll()
                         // All other endpoints need a valid token
                         .anyRequest().authenticated()
