@@ -36,6 +36,9 @@ public class SavedFilter {
     @Column(columnDefinition = "jsonb", nullable = false)
     private Map<String, Object> filters;
 
+    @Column(name = "is_notification_enabled", nullable = false)
+    private Boolean isNotificationEnabled = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

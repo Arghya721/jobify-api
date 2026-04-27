@@ -19,6 +19,9 @@ public class SavedFilterResponse {
     private String name;
     private Map<String, Object> filters;
 
+    @JsonProperty("is_notification_enabled")
+    private Boolean isNotificationEnabled;
+
     @JsonProperty("created_at")
     private OffsetDateTime createdAt;
 

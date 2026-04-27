@@ -13,4 +13,8 @@ public class SavedFilterRequest {
 
     /** The raw filter object — keys match the job-search query params */
     private Map<String, Object> filters;
+
+    /** Whether to send notifications when new jobs match this filter */
+    @JsonProperty("is_notification_enabled")
+    private Boolean isNotificationEnabled;
 }

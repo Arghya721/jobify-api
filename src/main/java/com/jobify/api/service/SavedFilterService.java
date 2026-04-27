@@ -54,6 +54,7 @@ public class SavedFilterService {
                 .user(user)
                 .name(request.getName())
                 .filters(request.getFilters())
+                .isNotificationEnabled(request.getIsNotificationEnabled() != null ? request.getIsNotificationEnabled() : false)
                 .build();
 
         return toResponse(savedFilterRepository.save(entity));
@@ -74,6 +75,9 @@ public class SavedFilterService {
         }
         if (request.getFilters() != null) {
             entity.setFilters(request.getFilters());
+        }
+        if (request.getIsNotificationEnabled() != null) {
+            entity.setIsNotificationEnabled(request.getIsNotificationEnabled());
         }
 
         return toResponse(savedFilterRepository.save(entity));
@@ -104,6 +108,7 @@ public class SavedFilterService {
                 .id(entity.getId())
                 .name(entity.getName())
                 .filters(entity.getFilters())
+                .isNotificationEnabled(entity.getIsNotificationEnabled())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
