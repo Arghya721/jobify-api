@@ -5,8 +5,8 @@ import com.jobify.api.dto.UserNotificationSettingsResponse;
 import com.jobify.api.service.NotificationSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/notifications/settings")
@@ -16,14 +16,16 @@ public class NotificationSettingsController {
     private final NotificationSettingsService settingsService;
 
     @GetMapping
-    public ResponseEntity<UserNotificationSettingsResponse> getSettings(@AuthenticationPrincipal String email) {
-        return ResponseEntity.ok(settingsService.getSettings(email));
+    public ResponseEntity<UserNotificationSettingsResponse> getSettings(Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(settingsService.getSettings(principal.getName()));
     }
 
     @PutMapping
     public ResponseEntity<UserNotificationSettingsResponse> updateSettings(
-            @AuthenticationPrincipal String email,
+            Principal principal,
             @RequestBody UserNotificationSettingsRequest request) {
-        return ResponseEntity.ok(settingsService.updateSettings(email, request));
+        if (principal == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(settingsService.updateSettings(principal.getName(), request));
     }
 }
