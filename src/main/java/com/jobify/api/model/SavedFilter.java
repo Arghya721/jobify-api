@@ -37,6 +37,7 @@ public class SavedFilter {
     private Map<String, Object> filters;
 
     @Column(name = "is_notification_enabled", nullable = false)
+    @Builder.Default
     private Boolean isNotificationEnabled = false;
 
     @CreationTimestamp

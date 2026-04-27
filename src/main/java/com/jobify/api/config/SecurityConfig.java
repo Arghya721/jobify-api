@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public — no token needed
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Bot webhooks are called by Telegram/Discord, not by users
+                        .requestMatchers("/api/bot/**").permitAll()
                         // Saved filters require authentication
                         .requestMatchers("/api/v1/filters/**").authenticated()
                         .requestMatchers("/api/v1/**").permitAll()
