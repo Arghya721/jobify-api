@@ -1,6 +1,7 @@
 package com.jobify.api.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobify.api.service.TelegramBotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class TelegramWebhookController {
 
     private final TelegramBotService telegramBotService;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Value("${bot.telegram.webhook-secret}")
     private String webhookSecret;
@@ -35,7 +37,7 @@ public class TelegramWebhookController {
     @PostMapping("/webhook/{secret}")
     public ResponseEntity<Void> handleUpdate(
             @PathVariable String secret,
-            @RequestBody JsonNode update
+            @RequestBody String rawUpdate
     ) {
         // Validate the secret
         if (!webhookSecret.equals(secret)) {
@@ -44,6 +46,7 @@ public class TelegramWebhookController {
         }
 
         try {
+            JsonNode update = OBJECT_MAPPER.readTree(rawUpdate);
             JsonNode message = update.get("message");
             if (message == null || message.isNull()) {
                 return ResponseEntity.ok().build(); // Ignore non-message updates
