@@ -55,15 +55,22 @@ public class DiscordBotService {
             System.arraycopy(timestampBytes, 0, message, 0, timestampBytes.length);
             System.arraycopy(rawBody, 0, message, timestampBytes.length, rawBody.length);
 
-            // Verify with Ed25519 via Java's built-in provider
-            java.security.Signature verifier = java.security.Signature.getInstance("Ed25519");
-            java.security.spec.EdECPublicKeySpec keySpec = new java.security.spec.EdECPublicKeySpec(
-                    new java.security.spec.NamedParameterSpec("Ed25519"),
-                    new java.security.spec.EdECPoint(false, new java.math.BigInteger(1, pubKeyBytes))
-            );
+            // Standard ASN.1 prefix for Ed25519 public keys (SubjectPublicKeyInfo)
+            byte[] ed25519Prefix = new byte[]{
+                    0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00
+            };
+            
+            // Prepend the prefix to the raw 32-byte public key
+            byte[] x509Key = new byte[ed25519Prefix.length + pubKeyBytes.length];
+            System.arraycopy(ed25519Prefix, 0, x509Key, 0, ed25519Prefix.length);
+            System.arraycopy(pubKeyBytes, 0, x509Key, ed25519Prefix.length, pubKeyBytes.length);
+
+            // Generate the public key using standard Java X.509 decoding
+            java.security.spec.X509EncodedKeySpec keySpec = new java.security.spec.X509EncodedKeySpec(x509Key);
             java.security.KeyFactory kf = java.security.KeyFactory.getInstance("Ed25519");
             java.security.PublicKey publicKey = kf.generatePublic(keySpec);
 
+            java.security.Signature verifier = java.security.Signature.getInstance("Ed25519");
             verifier.initVerify(publicKey);
             verifier.update(message);
             return verifier.verify(sigBytes);
