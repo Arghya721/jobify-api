@@ -57,7 +57,7 @@ public class TelegramWebhookController {
 
             log.info("Telegram update: chatId={}, text={}", chatId, text);
 
-            if ("/id".equals(text) || "/id@JobifyNotifierBot".equals(text)) {
+            if ("/id".equals(text) || "/id@jobify71_bot".equals(text)) {
                 String reply = String.format(
                         "🤖 *Your Jobify Chat ID is:*\n\n`%s`\n\nPaste this into your Jobify notification settings to receive job alerts!",
                         chatId
