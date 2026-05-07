@@ -33,3 +33,13 @@ build/
 .vscode/
 application.properties
 src/main/resources/application.properties
+
+### Graphify ###
+graphify-out/
+obsidian/
+.obsidian/
+_COMMUNITY_*.md
+wiki/
+.graphify_*.json
+.graphify_*.txt
+.graphify_python
