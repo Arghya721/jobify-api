@@ -19,7 +19,7 @@ on:
 
 env:
   PROJECT_ID: job-notifier-478915
-  REGION: asia-east1
+  REGION: asia-south1
   REGISTRY_HOSTNAME: asia-south1-docker.pkg.dev
   SERVICE_NAME: jobify-api
   IMAGE_NAME: jobify-api
