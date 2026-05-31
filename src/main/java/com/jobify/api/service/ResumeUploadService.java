@@ -115,17 +115,16 @@ public class ResumeUploadService {
         stringRedisTemplate.delete("resume:" + uploadId + ":result");
     }
 
-    // ─────────────────── Download URL ───────────────────
+    // ─────────────────── Download bytes ───────────────────
 
     @Transactional(readOnly = true)
-    public String getDownloadUrl(Long uploadId, String email) {
+    public byte[] downloadFile(Long uploadId, String email) {
         User user = resolveUser(email);
         ResumeUpload upload = resumeUploadRepository
                 .findByIdAndUserId(uploadId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Resume upload not found or access denied."));
 
-        URL signedUrl = gcsService.generateSignedUrl(upload.getGcsPath());
-        return signedUrl.toString();
+        return gcsService.downloadBytes(upload.getGcsPath());
     }
 
     // ─────────────────── Redis result (for SSE reconnect) ───────────────────

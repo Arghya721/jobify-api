@@ -6,18 +6,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URL;
-import java.util.concurrent.TimeUnit;
-
 @Slf4j
 @Service
 public class GcsService {
 
     @Value("${gcs.bucket.name}")
     private String bucketName;
-
-    @Value("${gcs.signed-url.duration-minutes:15}")
-    private long signedUrlDurationMinutes;
 
     private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
@@ -36,21 +30,12 @@ public class GcsService {
         }
     }
 
-    public URL generateSignedUrl(String gcsPath) {
+    public byte[] downloadBytes(String gcsPath) {
         try {
-            BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, gcsPath)).build();
-            return storage.signUrl(
-                    blobInfo,
-                    signedUrlDurationMinutes,
-                    TimeUnit.MINUTES,
-                    Storage.SignUrlOption.withV4Signature(),
-                    Storage.SignUrlOption.signWith(
-                            com.google.auth.oauth2.ComputeEngineCredentials.create()
-                    )
-            );
+            return storage.readAllBytes(BlobId.of(bucketName, gcsPath));
         } catch (Exception e) {
-            log.error("Failed to generate signed URL for {}: {}", gcsPath, e.getMessage());
-            throw new RuntimeException("Signed URL generation failed: " + e.getMessage(), e);
+            log.error("Failed to download GCS file {}: {}", gcsPath, e.getMessage());
+            throw new RuntimeException("GCS download failed: " + e.getMessage(), e);
         }
     }
 

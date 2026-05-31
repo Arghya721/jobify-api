@@ -81,20 +81,6 @@ public class ResumeUploadController {
         }
     }
 
-    // ─────────────────── Download signed URL ───────────────────
-
-    @Operation(summary = "Get resume download URL", description = "Returns a short-lived signed GCS URL to view the uploaded resume file.")
-    @GetMapping("/uploads/{id}/download")
-    public ResponseEntity<?> downloadUrl(@PathVariable Long id, Principal principal) {
-        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        try {
-            String url = resumeUploadService.getDownloadUrl(id, principal.getName());
-            return ResponseEntity.ok(Map.of("url", url));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
-    }
-
     // ─────────────────── SSE stream ───────────────────
 
     @Operation(summary = "Stream analysis status", description = "SSE endpoint. Returns immediately if result is cached or done; otherwise streams when the worker publishes the result.")
@@ -150,10 +136,33 @@ public class ResumeUploadController {
         redisMessageListenerContainer.addMessageListener(listener, topic);
 
         emitter.onCompletion(() -> redisMessageListenerContainer.removeMessageListener(listener));
-        emitter.onTimeout(() -> redisMessageListenerContainer.removeMessageListener(listener));
-        emitter.onError((e) -> redisMessageListenerContainer.removeMessageListener(listener));
+        emitter.onTimeout(() -> {
+            redisMessageListenerContainer.removeMessageListener(listener);
+            emitter.complete();
+        });
+        emitter.onError((e) -> {
+            redisMessageListenerContainer.removeMessageListener(listener);
+            // client disconnected — response already committed, swallow silently
+        });
 
         return emitter;
+    }
+
+    // ─────────────────── Download (proxy through API) ───────────────────
+
+    @Operation(summary = "Download resume file", description = "Streams the resume file bytes directly — no signed URL required.")
+    @GetMapping("/uploads/{id}/download")
+    public ResponseEntity<byte[]> download(@PathVariable Long id, Principal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        try {
+            byte[] bytes = resumeUploadService.downloadFile(id, principal.getName());
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+                    .header("Content-Disposition", "inline; filename=\"resume.pdf\"")
+                    .body(bytes);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
     // ─────────────────── Helper ───────────────────
@@ -163,7 +172,7 @@ public class ResumeUploadController {
             emitter.send(SseEmitter.event().name("result").data(payload));
             emitter.complete();
         } catch (IOException e) {
-            emitter.completeWithError(e);
+            // client already disconnected — swallow
         }
     }
 }
