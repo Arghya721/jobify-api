@@ -196,11 +196,6 @@
 			<artifactId>google-cloud-storage</artifactId>
 		</dependency>
 
-		<!-- Google Cloud Pub/Sub -->
-		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>google-cloud-pubsub</artifactId>
-		</dependency>
 	</dependencies>
 
 	<build>

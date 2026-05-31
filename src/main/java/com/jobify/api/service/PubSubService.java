@@ -1,14 +1,17 @@
 package com.jobify.api.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.pubsub.v1.Publisher;
-import com.google.protobuf.ByteString;
-import com.google.pubsub.v1.PubsubMessage;
-import com.google.pubsub.v1.TopicName;
+import com.google.auth.oauth2.GoogleCredentials;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -16,6 +19,9 @@ import java.util.Map;
 public class PubSubService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String PUBSUB_SCOPE = "https://www.googleapis.com/auth/pubsub";
+
+    private final RestClient restClient = RestClient.create();
 
     @Value("${pubsub.project-id}")
     private String projectId;
@@ -25,21 +31,34 @@ public class PubSubService {
 
     public void publishResumeAnalysis(Long uploadId, String gcsPath, Long userId) {
         try {
-            TopicName topicName = TopicName.of(projectId, resumeAnalysisTopic);
-            Publisher publisher = Publisher.newBuilder(topicName).build();
+            GoogleCredentials credentials = GoogleCredentials
+                    .getApplicationDefault()
+                    .createScoped(Collections.singletonList(PUBSUB_SCOPE));
+            credentials.refreshIfExpired();
+            String token = credentials.getAccessToken().getTokenValue();
 
-            String payload = MAPPER.writeValueAsString(Map.of(
-                    "upload_id", uploadId,
-                    "gcs_path", gcsPath,
-                    "user_id", userId
-            ));
+            String data = Base64.getEncoder().encodeToString(
+                    MAPPER.writeValueAsString(Map.of(
+                            "upload_id", uploadId,
+                            "gcs_path", gcsPath,
+                            "user_id", userId
+                    )).getBytes(StandardCharsets.UTF_8)
+            );
 
-            PubsubMessage message = PubsubMessage.newBuilder()
-                    .setData(ByteString.copyFromUtf8(payload))
-                    .build();
+            Map<String, Object> body = Map.of(
+                    "messages", List.of(Map.of("data", data))
+            );
 
-            publisher.publish(message).get();
-            publisher.shutdown();
+            String url = "https://pubsub.googleapis.com/v1/projects/"
+                    + projectId + "/topics/" + resumeAnalysisTopic + ":publish";
+
+            restClient.post()
+                    .uri(url)
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
 
             log.info("Published resume analysis message for upload_id={}", uploadId);
         } catch (Exception e) {
