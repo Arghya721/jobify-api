@@ -27,12 +27,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ResumeUploadService {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final ResumeUploadRepository resumeUploadRepository;
     private final UserRepository userRepository;
     private final GcsService gcsService;
     private final PubSubService pubSubService;
     private final StringRedisTemplate stringRedisTemplate;
-    private final ObjectMapper objectMapper;
 
     @Value("${app.max-resume-uploads:3}")
     private int maxResumeUploads;
@@ -173,14 +174,13 @@ public class ResumeUploadService {
                 .build();
     }
 
-    @SuppressWarnings("unchecked")
     public String buildCompletedPayload(ResumeUpload upload) {
         try {
             Map<String, Object> payload = Map.of(
                     "status", upload.getStatus(),
                     "jobs_query", upload.getJobsQuery() != null ? upload.getJobsQuery() : Map.of()
             );
-            return objectMapper.writeValueAsString(payload);
+            return MAPPER.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
             return "{\"status\":\"" + upload.getStatus() + "\"}";
         }

@@ -5,7 +5,6 @@ import com.google.cloud.pubsub.v1.Publisher;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,8 +13,9 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PubSubService {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Value("${pubsub.project-id}")
     private String projectId;
@@ -23,14 +23,12 @@ public class PubSubService {
     @Value("${pubsub.topic.resume-analysis}")
     private String resumeAnalysisTopic;
 
-    private final ObjectMapper objectMapper;
-
     public void publishResumeAnalysis(Long uploadId, String gcsPath, Long userId) {
         try {
             TopicName topicName = TopicName.of(projectId, resumeAnalysisTopic);
             Publisher publisher = Publisher.newBuilder(topicName).build();
 
-            String payload = objectMapper.writeValueAsString(Map.of(
+            String payload = MAPPER.writeValueAsString(Map.of(
                     "upload_id", uploadId,
                     "gcs_path", gcsPath,
                     "user_id", userId
