@@ -49,6 +49,16 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // Prevent Spring Security from writing to already-committed SSE responses
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, e) -> {
+                            if (!response.isCommitted()) response.sendError(401, e.getMessage());
+                        })
+                        .accessDeniedHandler((request, response, e) -> {
+                            if (!response.isCommitted()) response.sendError(403, e.getMessage());
+                        })
+                )
+
                 .userDetailsService(userDetailsService)
 
                 // Run JwtAuthFilter before Spring's default auth filter
