@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 
@@ -41,5 +42,12 @@ public class RedisConfig {
                                 .cacheDefaults(defaultConfig) // Fallback for any name not in the map
                                 .withInitialCacheConfigurations(cacheConfigurations) // Apply the map
                                 .build();
+        }
+
+        @Bean
+        public RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory connectionFactory) {
+                RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+                container.setConnectionFactory(connectionFactory);
+                return container;
         }
 }

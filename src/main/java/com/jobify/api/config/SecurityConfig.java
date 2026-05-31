@@ -38,6 +38,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/bot/**").permitAll()
                         // Saved filters require authentication
                         .requestMatchers("/api/v1/filters/**").authenticated()
+                        // Resume upload feature requires authentication
+                        .requestMatchers("/api/v1/resume/**").authenticated()
                         .requestMatchers("/api/v1/**").permitAll()
                         // All other endpoints need a valid token
                         .anyRequest().authenticated()
