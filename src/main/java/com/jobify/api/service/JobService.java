@@ -271,8 +271,23 @@ public class JobService {
     private String generateSearchKey(JobSearchCriteria criteria, Pageable pageable) {
         String sortString = pageable.getSort().isSorted() ? pageable.getSort().toString().replace(": ", "")
                 : "UNSORTED";
+        String tags = criteria.getDescriptionTags() != null
+                ? String.join(",", criteria.getDescriptionTags())
+                : "";
         return "search:" +
-                criteria.hashCode() +
+                "q:" + (criteria.getQ() != null ? criteria.getQ().toLowerCase().trim() : "") +
+                "_co:" + criteria.getCompanyId() +
+                "_src:" + criteria.getSource() +
+                "_cy:" + criteria.getCity() +
+                "_rg:" + criteria.getRegion() +
+                "_ct:" + criteria.getCountry() +
+                "_rm:" + criteria.getRemote() +
+                "_ia:" + criteria.getIsActive() +
+                "_si:" + criteria.getSince() +
+                "_tg:" + tags +
+                "_sd:" + criteria.getSortDirection() +
+                "_xn:" + criteria.getExperienceMin() +
+                "_xx:" + criteria.getExperienceMax() +
                 "_p:" + pageable.getPageNumber() +
                 "_s:" + pageable.getPageSize() +
                 "_o:" + sortString;

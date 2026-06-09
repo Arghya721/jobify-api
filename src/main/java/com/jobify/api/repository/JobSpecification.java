@@ -2,6 +2,7 @@ package com.jobify.api.repository;
 
 import com.jobify.api.dto.JobSearchCriteria;
 import com.jobify.api.model.*;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -9,13 +10,16 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class JobSpecification {
 
     public static Specification<Job> createSpecification(JobSearchCriteria criteria) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            Expression<Integer> relevanceScore = null;
 
             // Optimization for N+1: Fetch ToOne relationships
             // Check if query is for counting to avoid fetching in count query
@@ -32,9 +36,52 @@ public class JobSpecification {
                 predicates.add(cb.equal(root.get("companyId"), criteria.getCompanyId()));
             }
 
-            // Search in title
+            // Search in title — token-aware with relevance scoring
             if (StringUtils.hasText(criteria.getQ())) {
-                predicates.add(cb.like(cb.lower(root.get("title")), "%" + criteria.getQ().toLowerCase() + "%"));
+                String lowerQ = criteria.getQ().toLowerCase().trim();
+                String[] tokens = lowerQ.split("\\s+");
+
+                List<Predicate> titlePredicates = new ArrayList<>();
+
+                // full phrase substring match
+                Predicate fullPhrase = cb.like(cb.lower(root.get("title")), "%" + lowerQ + "%");
+                titlePredicates.add(fullPhrase);
+
+                if (tokens.length > 1) {
+                    // all tokens must appear (AND) — catches "Software Engineer" in "Senior Software Engineer"
+                    List<Predicate> andTokens = Arrays.stream(tokens)
+                            .filter(t -> t.length() >= 3)
+                            .map(t -> (Predicate) cb.like(cb.lower(root.get("title")), "%" + t + "%"))
+                            .collect(Collectors.toList());
+                    if (!andTokens.isEmpty())
+                        titlePredicates.add(cb.and(andTokens.toArray(new Predicate[0])));
+
+                    // any token matches (OR) — broadest net, surfaces related titles
+                    List<Predicate> orTokens = Arrays.stream(tokens)
+                            .filter(t -> t.length() >= 4)
+                            .map(t -> (Predicate) cb.like(cb.lower(root.get("title")), "%" + t + "%"))
+                            .collect(Collectors.toList());
+                    if (!orTokens.isEmpty())
+                        titlePredicates.add(cb.or(orTokens.toArray(new Predicate[0])));
+
+                    // relevance score: full phrase = tokens.length*2 pts, each token match = 1 pt
+                    if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                        Expression<Integer> score = cb.<Integer>selectCase()
+                                .when(fullPhrase, tokens.length * 2)
+                                .otherwise(0);
+                        for (String token : tokens) {
+                            if (token.length() >= 3) {
+                                score = cb.sum(score,
+                                        cb.<Integer>selectCase()
+                                                .when(cb.like(cb.lower(root.get("title")), "%" + token + "%"), 1)
+                                                .otherwise(0));
+                            }
+                        }
+                        relevanceScore = score;
+                    }
+                }
+
+                predicates.add(cb.or(titlePredicates.toArray(new Predicate[0])));
             }
 
             // Filter by source (jobSource column)
@@ -161,46 +208,60 @@ public class JobSpecification {
                 }
             }
 
-            // Custom Sorting: COALESCE(jobDetail.jobPostedAt, root.createdAt)
-            if (criteria.getSortDirection() != null && query.getResultType() != Long.class
+            // Custom Sorting: relevance score (primary, when q is multi-token) + COALESCE date (secondary)
+            if ((relevanceScore != null || criteria.getSortDirection() != null)
+                    && query.getResultType() != Long.class
                     && query.getResultType() != long.class) {
-                Join<Job, JobDetail> sortJobDetailJoin = null;
 
-                for (Join<Job, ?> join : root.getJoins()) {
-                    if (join.getAttribute().getName().equals("jobDetail")) {
-                        @SuppressWarnings("unchecked")
-                        Join<Job, JobDetail> castedJoin = (Join<Job, JobDetail>) join;
-                        sortJobDetailJoin = castedJoin;
-                        break;
+                List<jakarta.persistence.criteria.Order> orders = new ArrayList<>();
+
+                // PRIMARY: relevance score DESC when q has multiple tokens
+                if (relevanceScore != null) {
+                    orders.add(cb.desc(relevanceScore));
+                }
+
+                // SECONDARY: COALESCE(jobDetail.jobPostedAt, root.createdAt)
+                if (criteria.getSortDirection() != null) {
+                    Join<Job, JobDetail> sortJobDetailJoin = null;
+
+                    for (Join<Job, ?> join : root.getJoins()) {
+                        if (join.getAttribute().getName().equals("jobDetail")) {
+                            @SuppressWarnings("unchecked")
+                            Join<Job, JobDetail> castedJoin = (Join<Job, JobDetail>) join;
+                            sortJobDetailJoin = castedJoin;
+                            break;
+                        }
+                    }
+
+                    if (sortJobDetailJoin == null) {
+                        sortJobDetailJoin = root.join("jobDetail", JoinType.LEFT);
+                    }
+
+                    jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> postedAt = sortJobDetailJoin
+                            .get("jobPostedAt");
+                    jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> createdAt = root.get("createdAt");
+                    java.time.OffsetDateTime minDate = java.time.OffsetDateTime.parse("1970-01-01T00:00:00Z");
+                    jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> effectiveDate = cb.<java.time.OffsetDateTime>selectCase()
+                            .when(cb.isNull(postedAt), createdAt)
+                            .when(cb.lessThan(postedAt, minDate), createdAt)
+                            .otherwise(postedAt);
+
+                    // PERFORMANCE FIX: PostgreSQL planner trap "Limit + Order By + ILIKE"
+                    // This forces PG to evaluate the intensive Text Index Filter FIRST instead of a
+                    // full backward sequential scan
+                    // by making the sort key opaque to the planner.
+                    jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> opaqueSortKey = cb.function(
+                            "COALESCE", java.time.OffsetDateTime.class, effectiveDate,
+                            cb.nullLiteral(java.time.OffsetDateTime.class));
+
+                    if (criteria.getSortDirection().isAscending()) {
+                        orders.add(cb.asc(opaqueSortKey));
+                    } else {
+                        orders.add(cb.desc(opaqueSortKey));
                     }
                 }
 
-                if (sortJobDetailJoin == null) {
-                    sortJobDetailJoin = root.join("jobDetail", JoinType.LEFT);
-                }
-
-                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> postedAt = sortJobDetailJoin
-                        .get("jobPostedAt");
-                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> createdAt = root.get("createdAt");
-                java.time.OffsetDateTime minDate = java.time.OffsetDateTime.parse("1970-01-01T00:00:00Z");
-                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> effectiveDate = cb.<java.time.OffsetDateTime>selectCase()
-                        .when(cb.isNull(postedAt), createdAt)
-                        .when(cb.lessThan(postedAt, minDate), createdAt)
-                        .otherwise(postedAt);
-
-                // PERFORMANCE FIX: PostgreSQL planner trap "Limit + Order By + ILIKE"
-                // This forces PG to evaluate the intensive Text Index Filter FIRST instead of a
-                // full backward sequential scan
-                // by making the sort key opaque to the planner.
-                jakarta.persistence.criteria.Expression<java.time.OffsetDateTime> opaqueSortKey = cb.function(
-                        "COALESCE", java.time.OffsetDateTime.class, effectiveDate,
-                        cb.nullLiteral(java.time.OffsetDateTime.class));
-
-                if (criteria.getSortDirection().isAscending()) {
-                    query.orderBy(cb.asc(opaqueSortKey));
-                } else {
-                    query.orderBy(cb.desc(opaqueSortKey));
-                }
+                query.orderBy(orders);
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
