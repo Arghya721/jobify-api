@@ -37,6 +37,9 @@ public class RedisConfig {
 
                 cacheConfigurations.put("companies", defaultConfig.entryTtl(ttl));
 
+                // Stack stats are derived from daily scrapes — cache for 1 day
+                cacheConfigurations.put("stack_stats", defaultConfig.entryTtl(Duration.ofSeconds(86400)));
+
                 // 3. Build the CacheManager
                 return RedisCacheManager.builder(connectionFactory)
                                 .cacheDefaults(defaultConfig) // Fallback for any name not in the map
