@@ -11,9 +11,10 @@ import java.util.List;
  * Native SQL queries for stack stats. Uses JdbcTemplate to avoid entity mapping
  * overhead and allow efficient aggregate queries across job_details.
  *
- * All queries filter on lower(raw_description) LIKE '%tag%' — covered by the
- * trigram index idx_job_details_trgm on job_details.raw_description.
- * Additional indexes added via migration 000024_add_stats_indexes.
+ * Tag matching uses the structured job_details.tags text[] column (populated by
+ * the job-processor skill extractor) instead of a LIKE scan over raw_description.
+ * Membership is case-insensitive via unnest so callers can pass any casing;
+ * the canonical tags are produced by the extractor dictionary.
  */
 @Repository
 public class StatsRepository {
@@ -24,6 +25,15 @@ public class StatsRepository {
         this.jdbc = jdbcTemplate;
     }
 
+    /**
+     * SQL predicate: true when job_details row {@code jd} carries the given tag
+     * (case-insensitive). Bind one String parameter — the tag.
+     */
+    // Leading space is required: Java text blocks strip trailing whitespace per
+    // line, so the preceding "AND"/"WHERE" would otherwise glue to "EXISTS".
+    private static final String HAS_TAG =
+            " EXISTS (SELECT 1 FROM unnest(jd.tags) AS tg WHERE lower(tg) = lower(?))";
+
     // ─── Total active jobs mentioning this tag ──────────────────────────────
 
     public long countTotalJobs(String tag) {
@@ -32,9 +42,9 @@ public class StatsRepository {
                 FROM jobs j
                 JOIN job_details jd ON j.id = jd.job_id
                 WHERE j.is_active = true
-                  AND lower(jd.raw_description) LIKE lower(?)
+                  AND """ + HAS_TAG + """
                 """;
-        Long count = jdbc.queryForObject(sql, Long.class, "%" + tag + "%");
+        Long count = jdbc.queryForObject(sql, Long.class, tag);
         return count != null ? count : 0L;
     }
 
@@ -47,8 +57,8 @@ public class StatsRepository {
                        COUNT(*) AS mentions,
                        ROUND(COUNT(*) * 100.0 / NULLIF((
                            SELECT COUNT(*)
-                           FROM jobs jj JOIN job_details jjd ON jj.id = jjd.job_id
-                           WHERE jj.is_active = true AND lower(jjd.raw_description) LIKE lower(?)
+                           FROM jobs jj JOIN job_details jd ON jj.id = jd.job_id
+                           WHERE jj.is_active = true AND """ + HAS_TAG + """
                        ), 0)) AS pct
                 FROM (VALUES
                     ('AWS'), ('Docker'), ('Kubernetes'), ('PostgreSQL'), ('Redis'),
@@ -56,22 +66,22 @@ public class StatsRepository {
                     ('Spark'), ('Airflow'), ('GraphQL'), ('Go'), ('Rust'), ('Node.js'),
                     ('Next.js'), ('MongoDB'), ('Elasticsearch'), ('Kafka')
                 ) AS tags(tag)
-                JOIN job_details jd ON lower(jd.raw_description) LIKE '%' || lower(tags.tag) || '%'
+                JOIN job_details jd
+                  ON EXISTS (SELECT 1 FROM unnest(jd.tags) AS tg WHERE lower(tg) = lower(tags.tag))
                 JOIN jobs j ON j.id = jd.job_id
                 WHERE j.is_active = true
-                  AND lower(jd.raw_description) LIKE lower(?)
+                  AND """ + HAS_TAG + """
                   AND lower(tags.tag) != lower(?)
                 GROUP BY tags.tag
                 ORDER BY mentions DESC
                 LIMIT 8
                 """;
-        String pattern = "%" + tag + "%";
         return jdbc.query(sql,
                 (rs, row) -> new CoOccurringSkillDTO(
                         rs.getString("tag"),
                         rs.getLong("mentions"),
                         rs.getLong("pct")),
-                pattern, pattern, tag);
+                tag, tag, tag);
     }
 
     // ─── Experience distribution ─────────────────────────────────────────────
@@ -89,7 +99,7 @@ public class StatsRepository {
                 FROM jobs j
                 JOIN job_details jd ON j.id = jd.job_id
                 WHERE j.is_active = true
-                  AND lower(jd.raw_description) LIKE lower(?)
+                  AND """ + HAS_TAG + """
                   AND jd.experience_min IS NOT NULL
                 GROUP BY band
                 ORDER BY MIN(jd.experience_min)
@@ -98,7 +108,7 @@ public class StatsRepository {
                 (rs, row) -> new ExperienceDistributionDTO(
                         rs.getString("band"),
                         rs.getLong("count")),
-                "%" + tag + "%");
+                tag);
     }
 
     // ─── Posting velocity (this week vs last week) ───────────────────────────
@@ -111,7 +121,7 @@ public class StatsRepository {
                                       AND jd.job_posted_at <  NOW() - INTERVAL '7 days')   AS last_week
                 FROM jobs j
                 JOIN job_details jd ON j.id = jd.job_id
-                WHERE lower(jd.raw_description) LIKE lower(?)
+                WHERE """ + HAS_TAG + """
                 """;
         return jdbc.queryForObject(sql, (rs, row) -> {
             long thisWeek = rs.getLong("this_week");
@@ -119,7 +129,7 @@ public class StatsRepository {
             long change = lastWeek == 0 ? 0
                     : Math.round((thisWeek - lastWeek) * 100.0 / lastWeek);
             return new PostingVelocityDTO(thisWeek, lastWeek, change);
-        }, "%" + tag + "%");
+        }, tag);
     }
 
     // ─── Top hiring companies ────────────────────────────────────────────────
@@ -131,7 +141,7 @@ public class StatsRepository {
                 JOIN companies c  ON j.company_id = c.id
                 JOIN job_details jd ON j.id = jd.job_id
                 WHERE j.is_active = true
-                  AND lower(jd.raw_description) LIKE lower(?)
+                  AND """ + HAS_TAG + """
                 GROUP BY c.id, c.name
                 ORDER BY open_roles DESC
                 LIMIT 6
@@ -140,7 +150,7 @@ public class StatsRepository {
                 (rs, row) -> new TopCompanyDTO(
                         rs.getString("name"),
                         rs.getLong("open_roles")),
-                "%" + tag + "%");
+                tag);
     }
 
     // ─── Remote vs onsite breakdown ──────────────────────────────────────────
@@ -155,14 +165,14 @@ public class StatsRepository {
                 JOIN job_details jd  ON j.id = jd.job_id
                 JOIN job_locations jl ON j.id = jl.job_id
                 WHERE j.is_active = true
-                  AND lower(jd.raw_description) LIKE lower(?)
+                  AND """ + HAS_TAG + """
                 """;
         return jdbc.queryForObject(sql,
                 (rs, row) -> new RemoteBreakdownDTO(
                         rs.getLong("remote"),
                         rs.getLong("onsite"),
                         rs.getLong("total")),
-                "%" + tag + "%");
+                tag);
     }
 
     // ─── ATS source breakdown ────────────────────────────────────────────────
@@ -173,7 +183,7 @@ public class StatsRepository {
                 FROM jobs j
                 JOIN job_details jd ON j.id = jd.job_id
                 WHERE j.is_active = true
-                  AND lower(jd.raw_description) LIKE lower(?)
+                  AND """ + HAS_TAG + """
                 GROUP BY j.job_source
                 ORDER BY count DESC
                 """;
@@ -181,6 +191,6 @@ public class StatsRepository {
                 (rs, row) -> new AtsBreakdownDTO(
                         rs.getString("source"),
                         rs.getLong("count")),
-                "%" + tag + "%");
+                tag);
     }
 }
