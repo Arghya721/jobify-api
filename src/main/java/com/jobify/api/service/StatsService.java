@@ -21,14 +21,15 @@ public class StatsService {
 
     private final StatsRepository statsRepository;
 
-    @Cacheable(cacheNames = "stack_stats", key = "#tag.toLowerCase()")
-    public StackStatsDTO getStackStats(String tag) {
+    @Cacheable(cacheNames = "stack_stats",
+            key = "#tag.toLowerCase() + '|' + (#coOccurringTags == null ? '' : T(java.lang.String).join(',', #coOccurringTags).toLowerCase())")
+    public StackStatsDTO getStackStats(String tag, List<String> coOccurringTags) {
         String normalised = tag.toLowerCase();
 
         long totalJobs = statsRepository.countTotalJobs(normalised);
 
         List<CoOccurringSkillDTO> coOccurring =
-                statsRepository.findCoOccurringSkills(normalised);
+                statsRepository.findCoOccurringSkills(normalised, coOccurringTags);
 
         List<ExperienceDistributionDTO> expDist =
                 statsRepository.findExperienceDistribution(normalised);

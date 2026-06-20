@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * Internal stats API — protected by InternalApiKeyFilter.
  * Not publicly exposed. Consumers must supply X-Internal-Api-Key header.
@@ -33,12 +35,13 @@ public class StatsController {
     )
     @GetMapping("/stack")
     public ResponseEntity<StackStatsDTO> getStackStats(
-            @RequestParam String tag) {
+            @RequestParam String tag,
+            @RequestParam(name = "coOccurring", required = false) List<String> coOccurring) {
 
         if (tag == null || tag.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
 
-        return ResponseEntity.ok(statsService.getStackStats(tag.trim()));
+        return ResponseEntity.ok(statsService.getStackStats(tag.trim(), coOccurring));
     }
 }

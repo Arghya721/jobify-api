@@ -50,38 +50,69 @@ public class StatsRepository {
 
     // ─── Co-occurring skills ─────────────────────────────────────────────────
 
-    public List<CoOccurringSkillDTO> findCoOccurringSkills(String tag) {
-        // Subquery for denominator (total jobs with tag) avoids a separate query
+    /**
+     * Co-occurring skills for {@code tag}, computed against a caller-supplied
+     * candidate list (the frontend decides which skills to compare against).
+     * Returns empty when no candidates are given.
+     */
+    public List<CoOccurringSkillDTO> findCoOccurringSkills(String tag, List<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return List.of();
+        }
+        List<String> clean = candidates.stream()
+                .filter(c -> c != null && !c.isBlank())
+                .map(String::trim)
+                .toList();
+        if (clean.isEmpty()) {
+            return List.of();
+        }
+
+        // One "(?)" row per candidate — bound positionally below.
+        String valuesRows = clean.stream()
+                .map(c -> "(?)")
+                .collect(java.util.stream.Collectors.joining(", "));
+
+        // Explicit surrounding spaces: text blocks strip trailing whitespace, so
+        // dynamic splices must carry their own separators.
+        // Subquery for denominator (total jobs with tag) avoids a separate query.
         String sql = """
                 SELECT tags.tag,
                        COUNT(*) AS mentions,
                        ROUND(COUNT(*) * 100.0 / NULLIF((
                            SELECT COUNT(*)
                            FROM jobs jj JOIN job_details jd ON jj.id = jd.job_id
-                           WHERE jj.is_active = true AND """ + HAS_TAG + """
+                           WHERE jj.is_active = true AND""" + HAS_TAG + """
                        ), 0)) AS pct
-                FROM (VALUES
-                    ('AWS'), ('Docker'), ('Kubernetes'), ('PostgreSQL'), ('Redis'),
-                    ('FastAPI'), ('Django'), ('TypeScript'), ('React'), ('Terraform'),
-                    ('Spark'), ('Airflow'), ('GraphQL'), ('Go'), ('Rust'), ('Node.js'),
-                    ('Next.js'), ('MongoDB'), ('Elasticsearch'), ('Kafka')
+                FROM (VALUES """ + " " + valuesRows + """
                 ) AS tags(tag)
                 JOIN job_details jd
                   ON EXISTS (SELECT 1 FROM unnest(jd.tags) AS tg WHERE lower(tg) = lower(tags.tag))
                 JOIN jobs j ON j.id = jd.job_id
                 WHERE j.is_active = true
-                  AND """ + HAS_TAG + """
+                  AND""" + HAS_TAG + """
                   AND lower(tags.tag) != lower(?)
                 GROUP BY tags.tag
                 ORDER BY mentions DESC
                 LIMIT 8
                 """;
+
+        // Param order must match the ? appearance order in the SQL text:
+        //   1) denominator HAS_TAG, 2) VALUES candidates, 3) WHERE HAS_TAG, 4) exclude self
+        Object[] params = new Object[clean.size() + 3];
+        int i = 0;
+        params[i++] = tag;
+        for (String c : clean) {
+            params[i++] = c;
+        }
+        params[i++] = tag;
+        params[i] = tag;
+
         return jdbc.query(sql,
                 (rs, row) -> new CoOccurringSkillDTO(
                         rs.getString("tag"),
                         rs.getLong("mentions"),
                         rs.getLong("pct")),
-                tag, tag, tag);
+                params);
     }
 
     // ─── Experience distribution ─────────────────────────────────────────────
