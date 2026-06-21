@@ -145,11 +145,13 @@ public class StatsRepository {
     // ─── Posting velocity (this week vs last week) ───────────────────────────
 
     public PostingVelocityDTO findPostingVelocity(String tag) {
+        // last_week returns 0 until tags are backfilled for inactive jobs.
+        // Tags currently only extracted for active jobs.
         String sql = """
                 SELECT
-                    COUNT(*) FILTER (WHERE COALESCE(jd.job_posted_at, j.created_at) >= NOW() - INTERVAL '7 days')  AS this_week,
-                    COUNT(*) FILTER (WHERE COALESCE(jd.job_posted_at, j.created_at) >= NOW() - INTERVAL '14 days'
-                                      AND COALESCE(jd.job_posted_at, j.created_at) <  NOW() - INTERVAL '7 days')   AS last_week
+                    COUNT(*) FILTER (WHERE j.created_at >= NOW() - INTERVAL '7 days')  AS this_week,
+                    COUNT(*) FILTER (WHERE j.created_at >= NOW() - INTERVAL '14 days'
+                                      AND j.created_at <  NOW() - INTERVAL '7 days')   AS last_week
                 FROM jobs j
                 JOIN job_details jd ON j.id = jd.job_id
                 WHERE """ + HAS_TAG + """
