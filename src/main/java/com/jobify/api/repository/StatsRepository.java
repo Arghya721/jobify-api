@@ -147,9 +147,9 @@ public class StatsRepository {
     public PostingVelocityDTO findPostingVelocity(String tag) {
         String sql = """
                 SELECT
-                    COUNT(*) FILTER (WHERE COALESCE(jd.job_posted_at, jd.created_at) >= NOW() - INTERVAL '7 days')  AS this_week,
-                    COUNT(*) FILTER (WHERE COALESCE(jd.job_posted_at, jd.created_at) >= NOW() - INTERVAL '14 days'
-                                      AND COALESCE(jd.job_posted_at, jd.created_at) <  NOW() - INTERVAL '7 days')   AS last_week
+                    COUNT(*) FILTER (WHERE COALESCE(jd.job_posted_at, j.created_at) >= NOW() - INTERVAL '7 days')  AS this_week,
+                    COUNT(*) FILTER (WHERE COALESCE(jd.job_posted_at, j.created_at) >= NOW() - INTERVAL '14 days'
+                                      AND COALESCE(jd.job_posted_at, j.created_at) <  NOW() - INTERVAL '7 days')   AS last_week
                 FROM jobs j
                 JOIN job_details jd ON j.id = jd.job_id
                 WHERE """ + HAS_TAG + """
