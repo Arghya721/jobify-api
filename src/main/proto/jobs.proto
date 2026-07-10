@@ -65,6 +65,8 @@ message JobDetailMessage {
   optional int32 experience_max = 3;
   string experience_raw = 4;
   string job_posted_at = 5;
+  string description_html = 6;
+  repeated string tags = 7;
 }
 
 message LocationMessage {

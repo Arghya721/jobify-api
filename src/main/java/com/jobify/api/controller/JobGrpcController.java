@@ -173,6 +173,12 @@ public class JobGrpcController extends JobServiceGrpc.JobServiceImplBase {
                 if (jobDTO.getDetails().getExperienceRaw() != null) {
                     detailBuilder.setExperienceRaw(jobDTO.getDetails().getExperienceRaw());
                 }
+                if (jobDTO.getDetails().getDescriptionHtml() != null) {
+                    detailBuilder.setDescriptionHtml(jobDTO.getDetails().getDescriptionHtml());
+                }
+                if (jobDTO.getDetails().getTags() != null) {
+                    detailBuilder.addAllTags(jobDTO.getDetails().getTags());
+                }
                 if (jobDTO.getDetails().getJobPostedAt() != null
                         && jobDTO.getDetails().getJobPostedAt().getYear() > 1970) {
                     detailBuilder.setJobPostedAt(jobDTO.getDetails().getJobPostedAt().toString());

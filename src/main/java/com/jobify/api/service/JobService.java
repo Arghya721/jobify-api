@@ -23,10 +23,13 @@ public class JobService {
 
     private final JobRepository jobRepository;
     private final CacheManager cacheManager;
+    private final DescriptionFormatterService descriptionFormatterService;
 
-    public JobService(JobRepository jobRepository, @Qualifier("caffeineCacheManager") CacheManager cacheManager) {
+    public JobService(JobRepository jobRepository, @Qualifier("caffeineCacheManager") CacheManager cacheManager,
+            DescriptionFormatterService descriptionFormatterService) {
         this.jobRepository = jobRepository;
         this.cacheManager = cacheManager;
+        this.descriptionFormatterService = descriptionFormatterService;
     }
 
     @Transactional(readOnly = true)
@@ -151,6 +154,9 @@ public class JobService {
                 detailDTO.setExperienceMax(detail.getExperienceMax());
                 detailDTO.setExperienceRaw(detail.getExperienceRaw());
                 detailDTO.setJobPostedAt(detail.getJobPostedAt());
+                detailDTO.setDescriptionHtml(
+                        descriptionFormatterService.toHtml(job.getJobSource(), job.getMetadata()));
+                detailDTO.setTags(detail.getTags());
                 dto.setDetails(detailDTO);
             }
 

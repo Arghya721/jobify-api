@@ -8,9 +8,12 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "job_details")
@@ -48,4 +51,8 @@ public class JobDetail implements Serializable {
 
     @Column(name = "experience_raw", columnDefinition = "text")
     private String experienceRaw;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "tags", columnDefinition = "text[]")
+    private List<String> tags;
 }

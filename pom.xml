@@ -196,6 +196,13 @@
 			<artifactId>google-cloud-storage</artifactId>
 		</dependency>
 
+		<!-- HTML sanitization for job description formatting -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.18.1</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
