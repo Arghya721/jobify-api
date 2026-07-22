@@ -14,6 +14,10 @@ public class AuthResponse {
     private String accessToken;
     private String refreshToken;
 
+    // Lets the frontend decide whether to show the first-login feature tour
+    // without needing a second round trip after sign-in.
+    private boolean onboardingCompleted;
+
     // Optional user metadata you can pass to the frontend
     // NextAuth handles this on the Next.js side, but it's good to have it here
     private UserDto user;

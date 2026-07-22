@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.OffsetDateTime;
+
 @Entity
 @Table(name = "users")
 @Data
@@ -35,5 +37,10 @@ public class User {
 
     @Column(name = "google_id", unique = true)
     private String googleId;
+
+    // Null until the user finishes (or skips) the first-login feature tour.
+    // Stored server-side so the tour never reappears after re-login or on another device.
+    @Column(name = "onboarding_completed_at")
+    private OffsetDateTime onboardingCompletedAt;
 
 }

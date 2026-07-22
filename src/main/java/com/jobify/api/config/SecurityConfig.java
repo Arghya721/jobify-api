@@ -40,6 +40,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/filters/**").authenticated()
                         // Resume upload feature requires authentication
                         .requestMatchers("/api/v1/resume/**").authenticated()
+                        // Onboarding tour state is per-user — must be listed before the
+                        // catch-all /api/v1/** permitAll below or it would be public
+                        .requestMatchers("/api/v1/onboarding/**").authenticated()
                         .requestMatchers("/api/v1/**").permitAll()
                         // All other endpoints need a valid token
                         .anyRequest().authenticated()

@@ -128,6 +128,7 @@ public class AuthService {
                 return AuthResponse.builder()
                         .accessToken(jwt)
                         .refreshToken(refreshToken.getToken())
+                        .onboardingCompleted(user.getOnboardingCompletedAt() != null)
                         .user(new AuthResponse.UserDto(user.getEmail(), user.getName(), user.getPicture()))
                         .build();
 
@@ -153,6 +154,7 @@ public class AuthService {
                     return AuthResponse.builder()
                             .accessToken(jwt)
                             .refreshToken(request.getRefreshToken())
+                            .onboardingCompleted(user.getOnboardingCompletedAt() != null)
                             .user(new AuthResponse.UserDto(user.getEmail(), user.getName(), user.getPicture()))
                             .build();
                 })
